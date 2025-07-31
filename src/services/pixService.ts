@@ -64,11 +64,13 @@ export async function gerarPix(
 /**
  * Verifica o status de pagamento Pix
  */
+const STATUS_URL = "https://app.ghostspaysv1.com/api/v1/transaction.getPayment";
+
 export async function verificarStatusPagamento(id: string): Promise<"PENDING" | "APPROVED" | "FAILED" | "REJECTED"> {
-  const response = await fetch(`${API_URL}/transaction.getPayment?id=${id}`, {
+  const response = await fetch(`${STATUS_URL}?id=${id}`, {
     method: "GET",
     headers: {
-      "Authorization": `Bearer ${SECRET_KEY}`
+      "Authorization": SECRET_KEY
     }
   });
 
@@ -81,3 +83,4 @@ export async function verificarStatusPagamento(id: string): Promise<"PENDING" | 
 
   return data.status;
 }
+
