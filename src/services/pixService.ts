@@ -1,121 +1,83 @@
 import { PixResponse } from '../types';
 
-const SECRET_KEY = '31593d3e-f4ea-4937-ad1b-625a5fc647d1';
-const API_URL = 'https://pay.rushpayoficial.com/api/v1/transaction.purchase';
-const CHECK_STATUS_URL = 'https://pay.rushpayoficial.com/api/v1/transaction.status';
+export interface PixResponse {
+  id: string;
+  pixCode: string;
+  pixQrCode: string;
+}
 
+const BASE_URL = "https://app.ghostspaysv1.com/api/v1";
+const SECRET_KEY = process.env.SECRET_KEY || "18e91c79-748a-4418-872a-0d64db8f7083"; 
+
+/**
+ * Gera uma cobrança Pix usando GhostsPay
+ */
 export async function gerarPix(
-  name: string,
+  nome: string,
   email: string,
   cpf: string,
-  phone: string,
-  amountCentavos: number,
-  itemName: string,
-  utmQuery?: string
+  telefone: string,
+  valorCentavos: number,
+  descricao: string,
+  utmQuery: string
 ): Promise<PixResponse> {
-  if (!navigator.onLine) {
-    throw new Error('Sem conexão com a internet. Por favor, verifique sua conexão e tente novamente.');
+  const response = await fetch(`${BASE_URL}/transaction.purchase`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${SECRET_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: nome,
+      email,
+      cpf,
+      phone: telefone,
+      paymentMethod: "PIX",
+      amount: valorCentavos,
+      traceable: true,
+      utmQuery,
+      items: [
+        {
+          unitPrice: valorCentavos,
+          title: descricao,
+          quantity: 1,
+          tangible: false
+        }
+      ]
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("Erro ao gerar cobrança:", data);
+    throw new Error(data.message || "Erro ao gerar cobrança Pix");
   }
 
-  const requestBody = {
-    name,
-    email,
-    cpf,
-    phone,
-    paymentMethod: 'PIX',
-    amount: amountCentavos,
-    traceable: true,
-    utmQuery: utmQuery || '',
-    items: [
-      {
-        unitPrice: amountCentavos,
-        title: itemName,
-        quantity: 1,
-        tangible: false
-      }
-    ]
+  return {
+    id: data.id,
+    pixCode: data.pixCode,
+    pixQrCode: data.pixQrCode
   };
-
-  try {
-    console.log('Enviando requisição PIX:', {
-      url: API_URL,
-      body: requestBody
-    });
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': SECRET_KEY,
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    console.log('Status da resposta:', response.status);
-
-    const responseText = await response.text();
-    console.log('Resposta completa:', responseText);
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('API não encontrada. Por favor, tente novamente mais tarde.');
-      } else if (response.status === 403) {
-        throw new Error('Acesso negado. Verifique se a chave de API está correta.');
-      } else if (response.status === 500) {
-        throw new Error('Erro no processamento do pagamento. Por favor, aguarde alguns minutos e tente novamente. Se o problema persistir, entre em contato com o suporte.');
-      } else if (response.status === 0) {
-        throw new Error('Não foi possível conectar ao servidor. Verifique se o servidor está online.');
-      } else {
-        const errorData = JSON.parse(responseText);
-        throw new Error(`Erro no servidor: ${errorData.message || 'Erro desconhecido'}`);
-      }
-    }
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      throw new Error('Erro ao processar resposta do servidor. Por favor, tente novamente.');
-    }
-
-    if (!data.pixQrCode || !data.pixCode || !data.status || !data.id) {
-      console.error('Resposta inválida:', data);
-      throw new Error('Resposta incompleta do servidor. Por favor, tente novamente.');
-    }
-
-    return {
-      pixQrCode: data.pixQrCode,
-      pixCode: data.pixCode,
-      status: data.status,
-      id: data.id
-    };
-  } catch (error) {
-    console.error('Erro ao gerar PIX:', error);
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new Error('Servidor indisponível. Por favor, tente novamente em alguns minutos.');
-    }
-    throw error;
-  }
 }
-export async function verificarStatusPagamento(transactionId: string): Promise<string> {
-  try {
-    const response = await fetch(`${CHECK_STATUS_URL}/${transactionId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': SECRET_KEY,
-        'Accept': 'application/json'
-      }
-    });
 
-    if (!response.ok) {
-      throw new Error(`Erro ao verificar status: ${response.status}`);
+/**
+ * Verifica o status de pagamento Pix
+ */
+export async function verificarStatusPagamento(id: string): Promise<"PENDING" | "APPROVED" | "FAILED" | "REJECTED"> {
+  const response = await fetch(`${BASE_URL}/transaction.getPayment?id=${id}`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${SECRET_KEY}`
     }
+  });
 
-    const data = await response.json();
-    return data.status || 'pending';
-  } catch (error) {
-    console.error('Erro ao verificar status do pagamento:', error);
-    return 'error';
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("Erro ao verificar status:", data);
+    throw new Error(data.message || "Erro ao verificar status do pagamento");
   }
+
+  return data.status;
 }
