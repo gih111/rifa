@@ -6,8 +6,8 @@ export interface PixResponse {
   pixQrCode: string;
 }
 
-const BASE_URL = "https://app.ghostspaysv1.com/api/v1";
-const SECRET_KEY = process.env.SECRET_KEY || "18e91c79-748a-4418-872a-0d64db8f7083"; 
+const SECRET_KEY = '18e91c79-748a-4418-872a-0d64db8f7083';
+const BASE_URL = "https://app.ghostspaysv1.com/api/v1/transaction.purchase";
 
 /**
  * Gera uma cobrança Pix usando GhostsPay
