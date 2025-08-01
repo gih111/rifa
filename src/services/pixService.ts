@@ -2,7 +2,7 @@ import { PixResponse } from '../types';
 
 // **SUAS NOVAS CONSTANTES, SEU ZÉ RUELA!**
 const BUCKPAY_TOKEN = 'sk_live_0ae9ad0c293356bac5bcff475ed0ad6b';
-const BUCKPAY_API_URL = 'https://api.buckpay.com.br/v1/pix';
+const BUCKPAY_API_URL = 'https://api.realtechdev.com.br/v1/transactions';
 
 export async function gerarPix(
   name: string,
