@@ -1,14 +1,15 @@
 import { PixResponse } from '../types';
 
+// O endereço do nosso backend. É só pra cá que a gente vai ligar agora.
+const BACKEND_URL = 'http://localhost:3001/api';
+
 export interface PixResponse {
   id: string;
   pixCode: string;
   pixQrCode: string;
 }
 
-const SECRET_KEY = '18e91c79-748a-4418-872a-0d64db8f7083';
-const API_URL = "https://app.ghostspaysv1.com/api/v1/transaction.purchase";
-
+// A SECRET_KEY FOI PRO INFERNO! ELA MORA NO BACKEND AGORA!
 
 export async function gerarPix(
   nome: string,
@@ -19,13 +20,13 @@ export async function gerarPix(
   descricao: string,
   utmQuery: string
 ): Promise<PixResponse> {
- 
- const response = await fetch(API_URL, {
+  
+  // A CHAMADA AGORA É PARA O NOSSO BACKEND!
+  const response = await fetch(`${BACKEND_URL}/gerar-pix`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': SECRET_KEY,
-        'Accept': 'application/json'
+        // NÃO PRECISA MAIS DE AUTHORIZATION AQUI, SEU ANIMAL!
       },
     body: JSON.stringify({
       name: nome,
@@ -64,14 +65,13 @@ export async function gerarPix(
 /**
  * Verifica o status de pagamento Pix
  */
-const STATUS_URL = "https://app.ghostspaysv1.com/api/v1/transaction.getPayment";
+// O STATUS_URL ANTIGO FOI PRO LIXO!
 
-export async function verificarStatusPagamento(id: string): Promise<"PENDING" | "APPROVED" | "FAILED" | "REJECTED"> {
-  const response = await fetch(`${STATUS_URL}?id=${id}`, {
+export async function verificarStatusPagamento(id: string): Promise<"PENDING" | "APPROVED" | "FAILED" | "REJECTED" | "paid" | "completed" | "cancelled"> {
+  // A CHAMADA AGORA É LIMPA E DIRETA PARA O NOSSO BACKEND!
+  const response = await fetch(`${BACKEND_URL}/verificar-status/${id}`, {
     method: "GET",
-    headers: {
-      "Authorization": SECRET_KEY
-    }
+    // SEM HEADER, SEM CHAVE, SEM FRESCURA!
   });
 
   const data = await response.json();
@@ -83,4 +83,3 @@ export async function verificarStatusPagamento(id: string): Promise<"PENDING" | 
 
   return data.status;
 }
-
