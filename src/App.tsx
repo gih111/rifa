@@ -313,7 +313,8 @@ function App() {
   };
 
   // Função para validar CPF via API
-  const validateCPF = async (cpf) => {
+
+  const validateCPF = async (cpf: string) => {
     const cpfLimpo = cpf.replace(/\D/g, '');
     
     if (cpfLimpo.length !== 11) {
@@ -324,12 +325,10 @@ function App() {
     setCpfValidation(prev => ({ ...prev, isLoading: true, error: '' }));
 
     try {
-      const token = '95150b0b9cc3dcb0ae0b24a66514a8360cb293324fb65ffb76f783133018cfc8';
-      const response = await fetch(`https://api.dataget.site/api/v1/cpf/${cpfLimpo}`, {
+      // O TOKEN FOI PRO INFERNO! A CHAMADA AGORA É PRO NOSSO BACKEND!
+      const response = await fetch(`http://localhost:3001/api/consultar-cpf/${cpfLimpo}`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        // SEM HEADER, SEM TOKEN VAZANDO, SEU ANIMAL!
       });
       
       const data = await response.json();
@@ -350,11 +349,11 @@ function App() {
         isValid: false,
         isLoading: false,
         userData: null,
-        error: 'CPF inválido'
+        error: 'CPF inválido ou serviço indisponível' // Mensagem mais clara pro otário do usuário
       });
     }
   };
-
+  
   const handleInputChange = async (field, value) => {
     if (field === 'cpf') {
       // Formatação do CPF
