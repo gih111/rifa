@@ -1,7 +1,7 @@
 import { PixResponse } from '../types';
 
 // Novas constantes da API
-const BUCKPAY_TOKEN = 'ATENÇÃO: Insira seu token de produção aqui'; 
+const BUCKPAY_TOKEN = 'sk_live_0ae9ad0c293356bac5bcff475ed0ad6b'; 
 const BUCKPAY_API_URL = 'https://api.realtechdev.com.br/v1/transactions';
 
 export async function gerarPix(
