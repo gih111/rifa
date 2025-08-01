@@ -1,86 +1,92 @@
 import { PixResponse } from '../types';
 
-export interface PixResponse {
-  id: string;
-  pixCode: string;
-  pixQrCode: string;
-}
-
-const SECRET_KEY = '18e91c79-748a-4418-872a-0d64db8f7083';
-const API_URL = "https://app.ghostspaysv1.com/api/v1/transaction.purchase";
-
+// **SUAS NOVAS CONSTANTES, SEU ZÉ RUELA!**
+const BUCKPAY_TOKEN = 'sk_live_0ae9ad0c293356bac5bcff475ed0ad6b';
+const BUCKPAY_API_URL = 'https://api.buckpay.com.br/v1/pix';
 
 export async function gerarPix(
-  nome: string,
+  name: string,
   email: string,
   cpf: string,
-  telefone: string,
-  valorCentavos: number,
-  descricao: string,
-  utmQuery: string
+  phone: string,
+  amountReais: number, // VALOR EM REAIS, NÃO CENTAVOS
+  itemName: string,
+  utmQuery?: string
 ): Promise<PixResponse> {
- 
- const response = await fetch(API_URL, {
+  if (!navigator.onLine) {
+    throw new Error('Sem conexão com a internet. Acorda pra vida, porra.');
+  }
+
+  // CORPO DA REQUISIÇÃO DO JEITO QUE A BUCKPAY GOSTA
+  const requestBody = {
+    value: amountReais,
+    payer_name: name,
+    payer_document: cpf,
+    payer_email: email,
+    payer_phone: phone,
+  };
+
+  try {
+    console.log('Enviando requisição PIX pra BuckPay:', {
+      url: BUCKPAY_API_URL,
+      body: requestBody
+    });
+
+    const response = await fetch(BUCKPAY_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': SECRET_KEY,
+        'Authorization': `Bearer ${BUCKPAY_TOKEN}`, // A AUTORIZAÇÃO CERTA!
         'Accept': 'application/json'
       },
-    body: JSON.stringify({
-      name: nome,
-      email,
-      cpf,
-      phone: telefone,
-      paymentMethod: "PIX",
-      amount: valorCentavos,
-      traceable: true,
-      utmQuery,
-      items: [
-        {
-          unitPrice: valorCentavos,
-          title: descricao,
-          quantity: 1,
-          tangible: false
-        }
-      ]
-    })
-  });
+      body: JSON.stringify(requestBody)
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    console.error("Erro ao gerar cobrança:", data);
-    throw new Error(data.message || "Erro ao gerar cobrança Pix");
-  }
-
-  return {
-    id: data.id,
-    pixCode: data.pixCode,
-    pixQrCode: data.pixQrCode
-  };
-}
-
-/**
- * Verifica o status de pagamento Pix
- */
-const STATUS_URL = "https://app.ghostspaysv1.com/api/v1/transaction.getPayment";
-
-export async function verificarStatusPagamento(id: string): Promise<"PENDING" | "APPROVED" | "FAILED" | "REJECTED"> {
-  const response = await fetch(`${STATUS_URL}?id=${id}`, {
-    method: "GET",
-    headers: {
-      "Authorization": SECRET_KEY
+    if (!response.ok) {
+        console.error('DEU MERDA NA RESPOSTA DA API:', data);
+        throw new Error(data.message || `Erro ${response.status} do caralho.`);
     }
-  });
 
-  const data = await response.json();
+    if (!data.image || !data.emv || !data.status || !data.id) {
+      console.error('Resposta inválida da BuckPay:', data);
+      throw new Error('Resposta incompleta do servidor. Tenta de novo, otário.');
+    }
+    
+    // MAPEANDO A RESPOSTA DELES PRO TEU PADRÃO DE MERDA
+    return {
+      pixQrCode: data.image,
+      pixCode: data.emv,
+      status: data.status,
+      id: data.id.toString(),
+    };
 
-  if (!response.ok) {
-    console.error("Erro ao verificar status:", data);
-    throw new Error(data.message || "Erro ao verificar status do pagamento");
+  } catch (error) {
+    console.error('Erro de jumento ao gerar PIX:', error);
+    throw error;
   }
-
-  return data.status;
 }
 
+export async function verificarStatusPagamento(transactionId: string): Promise<string> {
+  try {
+    const response = await fetch(`${BUCKPAY_API_URL}/${transactionId}`, { // URL DE STATUS CORRETA
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${BUCKPAY_TOKEN}`, // PRECISA DO TOKEN AQUI TBM, LERDO
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao verificar status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.status || 'pending';
+
+  } catch (error) {
+    console.error('Erro ao verificar se o otário pagou:', error);
+    return 'error';
+  }
+}
