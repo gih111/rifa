@@ -409,20 +409,21 @@ function App() {
       const userData = cpfValidation.userData;
       const cpfLimpo = purchaseData.cpf.replace(/\D/g, '');
       const telefoneLimpo = purchaseData.telefone.replace(/\D/g, '');
+      const amountCentavos = selectedPackage.price * 100; // Converter para centavos
       const itemName = `${selectedPackage.numbers} números da Super Rifa`;
       
       // Gerar email baseado no nome se não tiver
       const email = userData?.email || `${userData?.nome?.toLowerCase().replace(/\s+/g, '')}@email.com` || 'cliente@superrifa.com';
 
-      // 🔥 A ÚNICA MUDANÇA DE VERDADE É AQUI, SEU CEGO! PASSA O PREÇO DIRETO! 🔥
+      
       const pixResponse = await gerarPix(
         userData?.nome || 'Cliente',
         email,
         cpfLimpo,
         telefoneLimpo,
-        selectedPackage.price, // AQUI, ANIMAL! O PREÇO DIRETO, EM REAIS!
+        amountCentavos,
         itemName,
-        utmParams
+         utmParams
       );
       
       setPixData(pixResponse);

@@ -1,94 +1,86 @@
 import { PixResponse } from '../types';
 
-// Novas constantes da API
-const BUCKPAY_TOKEN = 'sk_live_0ae9ad0c293356bac5bcff475ed0ad6b'; 
-const BUCKPAY_API_URL = 'https://api.realtechdev.com.br/v1/transactions';
+export interface PixResponse {
+  id: string;
+  pixCode: string;
+  pixQrCode: string;
+}
+
+const SECRET_KEY = '18e91c79-748a-4418-872a-0d64db8f7083';
+const API_URL = "https://app.ghostspaysv1.com/api/v1/transaction.purchase";
+
 
 export async function gerarPix(
-  name: string,
+  nome: string,
   email: string,
   cpf: string,
-  phone: string,
-  amountReais: number, // Valor em Reais (ex: 20.00)
-  itemName: string,
-  utmQuery?: string
+  telefone: string,
+  valorCentavos: number,
+  descricao: string,
+  utmQuery: string
 ): Promise<PixResponse> {
-  if (!navigator.onLine) {
-    throw new Error('Sem conexão com a internet. Por favor, verifique sua conexão e tente novamente.');
-  }
-
-  const requestBody = {
-    value: amountReais,
-    payer_name: name,
-    payer_document: cpf,
-    payer_email: email,
-    payer_phone: phone,
-  };
-
-  try {
-    console.log('Enviando requisição PIX para a BuckPay:', {
-      url: BUCKPAY_API_URL,
-      body: requestBody
-    });
-
-    const response = await fetch(BUCKPAY_API_URL, {
+ 
+ const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${BUCKPAY_TOKEN}`,
-        'Accept': 'application/json',
-        // Adiciona o User-Agent conforme solicitado pelo suporte
-        'User-Agent': 'Buckpay API'
+        'Authorization': SECRET_KEY,
+        'Accept': 'application/json'
       },
-      body: JSON.stringify(requestBody)
-    });
+    body: JSON.stringify({
+      name: nome,
+      email,
+      cpf,
+      phone: telefone,
+      paymentMethod: "PIX",
+      amount: valorCentavos,
+      traceable: true,
+      utmQuery,
+      items: [
+        {
+          unitPrice: valorCentavos,
+          title: descricao,
+          quantity: 1,
+          tangible: false
+        }
+      ]
+    })
+  });
 
-    const data = await response.json();
+  const data = await response.json();
 
-    if (!response.ok) {
-        console.error('Erro na resposta da API:', data);
-        throw new Error(data.message || `Erro ${response.status} ao processar a requisição.`);
-    }
-
-    if (!data.image || !data.emv || !data.status || !data.id) {
-      console.error('Resposta inválida da API BuckPay:', data);
-      throw new Error('Resposta incompleta do servidor. Por favor, tente novamente.');
-    }
-    
-    return {
-      pixQrCode: data.image,
-      pixCode: data.emv,
-      status: data.status,
-      id: data.id.toString(),
-    };
-
-  } catch (error) {
-    console.error('Erro ao gerar PIX:', error);
-    throw error;
+  if (!response.ok) {
+    console.error("Erro ao gerar cobrança:", data);
+    throw new Error(data.message || "Erro ao gerar cobrança Pix");
   }
+
+  return {
+    id: data.id,
+    pixCode: data.pixCode,
+    pixQrCode: data.pixQrCode
+  };
 }
 
-export async function verificarStatusPagamento(transactionId: string): Promise<string> {
-  try {
-    const response = await fetch(`${BUCKPAY_API_URL}/${transactionId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${BUCKPAY_TOKEN}`,
-        'Accept': 'application/json',
-        // Adiciona o User-Agent também na verificação de status
-        'User-Agent': 'Buckpay API'
-      }
-    });
+/**
+ * Verifica o status de pagamento Pix
+ */
+const STATUS_URL = "https://app.ghostspaysv1.com/api/v1/transaction.getPayment";
 
-    if (!response.ok) {
-      throw new Error(`Erro ao verificar status: ${response.status}`);
+export async function verificarStatusPagamento(id: string): Promise<"PENDING" | "APPROVED" | "FAILED" | "REJECTED"> {
+  const response = await fetch(`${STATUS_URL}?id=${id}`, {
+    method: "GET",
+    headers: {
+      "Authorization": SECRET_KEY
     }
+  });
 
-    const data = await response.json();
-    return data.status || 'pending';
+  const data = await response.json();
 
-  } catch (error) {
-    console.error('Erro ao verificar o status do pagamento:', error);
-    return 'error';
+  if (!response.ok) {
+    console.error("Erro ao verificar status:", data);
+    throw new Error(data.message || "Erro ao verificar status do pagamento");
   }
+
+  return data.status;
 }
+
