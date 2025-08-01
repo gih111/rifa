@@ -1,7 +1,7 @@
 import { PixResponse } from '../types';
 
 // O endereço do nosso backend. É só pra cá que a gente vai ligar agora.
-const BACKEND_URL = 'http://localhost:3001/api';
+const BACKEND_URL = 'https://backendrifa.onrender.com/api';
 
 export interface PixResponse {
   id: string;
