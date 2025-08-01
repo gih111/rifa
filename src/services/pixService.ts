@@ -1,7 +1,7 @@
 import { PixResponse } from '../types';
 
-// **SUAS NOVAS CONSTANTES, SEU ZÉ RUELA!**
-const BUCKPAY_TOKEN = 'sk_live_0ae9ad0c293356bac5bcff475ed0ad6b';
+// Novas constantes da API
+const BUCKPAY_TOKEN = 'ATENÇÃO: Insira seu token de produção aqui'; 
 const BUCKPAY_API_URL = 'https://api.realtechdev.com.br/v1/transactions';
 
 export async function gerarPix(
@@ -9,15 +9,14 @@ export async function gerarPix(
   email: string,
   cpf: string,
   phone: string,
-  amountReais: number, // VALOR EM REAIS, NÃO CENTAVOS
+  amountReais: number, // Valor em Reais (ex: 20.00)
   itemName: string,
   utmQuery?: string
 ): Promise<PixResponse> {
   if (!navigator.onLine) {
-    throw new Error('Sem conexão com a internet. Acorda pra vida, porra.');
+    throw new Error('Sem conexão com a internet. Por favor, verifique sua conexão e tente novamente.');
   }
 
-  // CORPO DA REQUISIÇÃO DO JEITO QUE A BUCKPAY GOSTA
   const requestBody = {
     value: amountReais,
     payer_name: name,
@@ -27,7 +26,7 @@ export async function gerarPix(
   };
 
   try {
-    console.log('Enviando requisição PIX pra BuckPay:', {
+    console.log('Enviando requisição PIX para a BuckPay:', {
       url: BUCKPAY_API_URL,
       body: requestBody
     });
@@ -36,8 +35,10 @@ export async function gerarPix(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${BUCKPAY_TOKEN}`, // A AUTORIZAÇÃO CERTA!
-        'Accept': 'application/json'
+        'Authorization': `Bearer ${BUCKPAY_TOKEN}`,
+        'Accept': 'application/json',
+        // Adiciona o User-Agent conforme solicitado pelo suporte
+        'User-Agent': 'Buckpay API'
       },
       body: JSON.stringify(requestBody)
     });
@@ -45,16 +46,15 @@ export async function gerarPix(
     const data = await response.json();
 
     if (!response.ok) {
-        console.error('DEU MERDA NA RESPOSTA DA API:', data);
-        throw new Error(data.message || `Erro ${response.status} do caralho.`);
+        console.error('Erro na resposta da API:', data);
+        throw new Error(data.message || `Erro ${response.status} ao processar a requisição.`);
     }
 
     if (!data.image || !data.emv || !data.status || !data.id) {
-      console.error('Resposta inválida da BuckPay:', data);
-      throw new Error('Resposta incompleta do servidor. Tenta de novo, otário.');
+      console.error('Resposta inválida da API BuckPay:', data);
+      throw new Error('Resposta incompleta do servidor. Por favor, tente novamente.');
     }
     
-    // MAPEANDO A RESPOSTA DELES PRO TEU PADRÃO DE MERDA
     return {
       pixQrCode: data.image,
       pixCode: data.emv,
@@ -63,18 +63,20 @@ export async function gerarPix(
     };
 
   } catch (error) {
-    console.error('Erro de jumento ao gerar PIX:', error);
+    console.error('Erro ao gerar PIX:', error);
     throw error;
   }
 }
 
 export async function verificarStatusPagamento(transactionId: string): Promise<string> {
   try {
-    const response = await fetch(`${BUCKPAY_API_URL}/${transactionId}`, { // URL DE STATUS CORRETA
+    const response = await fetch(`${BUCKPAY_API_URL}/${transactionId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${BUCKPAY_TOKEN}`, // PRECISA DO TOKEN AQUI TBM, LERDO
-        'Accept': 'application/json'
+        'Authorization': `Bearer ${BUCKPAY_TOKEN}`,
+        'Accept': 'application/json',
+        // Adiciona o User-Agent também na verificação de status
+        'User-Agent': 'Buckpay API'
       }
     });
 
@@ -86,7 +88,7 @@ export async function verificarStatusPagamento(transactionId: string): Promise<s
     return data.status || 'pending';
 
   } catch (error) {
-    console.error('Erro ao verificar se o otário pagou:', error);
+    console.error('Erro ao verificar o status do pagamento:', error);
     return 'error';
   }
 }
