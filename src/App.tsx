@@ -326,7 +326,7 @@ function App() {
 
     try {
       // O TOKEN FOI PRO INFERNO! A CHAMADA AGORA É PRO NOSSO BACKEND!
-      const response = await fetch(`http://https://backendrifa.onrender.com/api/consultar-cpf/${cpfLimpo}`, {
+      const response = await fetch(`https://backendrifa.onrender.com/api/consultar-cpf/${cpfLimpo}`, {
         method: 'GET',
         // SEM HEADER, SEM TOKEN VAZANDO, SEU ANIMAL!
       });
